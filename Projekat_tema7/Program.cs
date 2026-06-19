@@ -1,38 +1,32 @@
 ﻿using Projekat_tema7.Correction;
 using Projekat_tema7.Detection;
+using Projekat_tema7.Simulation;
 using System;
 
 class Program
 {
     static void Main()
     {
-        CRC32 crcModule = new CRC32();
-        byte[] testData = System.Text.Encoding.UTF8.GetBytes("Ovo je test poruka");
+        // 1. Inicijalizacija
+        int m = 4; // GF(2^4)
+        int t = 2; // Korekcija 2 greške
+        ReedSolomon rs = new ReedSolomon(m, t);
+        BurstChannel channel = new BurstChannel { BurstProbability = 1.0 }; // 100% šanse da probamo
+        CRC32 crc = new CRC32();
 
-        uint checksum = crcModule.Compute(testData);
+        // 2. Podaci
+        byte[] originalData = { 1, 2, 3, 4, 5, 6, 7 }; // tvoja poruka
+        byte[] encoded = rs.Encode(originalData);
 
-        Console.WriteLine($"CRC-32 checksum: {checksum:X8}");
+        // 3. Simulacija šuma
+        byte[] noisyData = channel.ApplyNoise(encoded);
 
-        // 2. Tvoj novi test za Galois Field
-        Console.WriteLine("\n--- Testiranje GaloisField-a ---");
-        GaloisField gf = new GaloisField(4, 0x13);
+        // 4. Provera (ovde će CRC verovatno prijaviti promenu)
+        uint originalCrc = crc.Compute(encoded);
+        uint noisyCrc = crc.Compute(noisyData);
 
-        int a = 2;
-        int b = 2;
-        int rez = gf.Multiply(a, b);
-        Console.WriteLine($"Množenje: {a} * {b} = {rez} (Očekivano: 4)");
-
-        int inv = gf.Inverse(2);
-        Console.WriteLine($"Inverz: Inverz od 2 je {inv} (Očekivano: 8)");
-
-        Console.WriteLine($"Sabiranje: 5 ^ 3 = {gf.Add(5, 3)} (Očekivano: 6)");
-
-        // 3. Testiranje Reed-Solomon kodiranja
-        var rs = new ReedSolomon(4, 3); // m=4 (GF16), t=3 (može ispraviti 3 greške)
-        byte[] poruka = { 8, 6, 8, 1, 2, 4, 15, 9, 9 };
-        byte[] kodirano = rs.Encode(poruka);
-
-        Console.WriteLine("Kodirana poruka (data + parity):");
-        Console.WriteLine(string.Join(", ", kodirano));
+        Console.WriteLine($"Originalni CRC: {originalCrc:X8}");
+        Console.WriteLine($"CRC nakon šuma: {noisyCrc:X8}");
+        Console.WriteLine($"Da li je došlo do promene? {originalCrc != noisyCrc}");
     }
 }

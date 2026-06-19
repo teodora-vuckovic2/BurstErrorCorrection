@@ -35,23 +35,22 @@ namespace Projekat_tema7.Correction
         }
 
         public byte[] Encode(byte[] data)
-        {
+        { 
             byte[] codeword = new byte[_n];
             int[] parity = new int[2 * _t];
-
-            for (int i = 0; i < _k; i++)
-            {
-                int feedback = _gf.Add(data[i], parity[_t * 2 - 1]);
-                for (int j = 2 * _t - 1; j > 0; j--)
-                {
-                    parity[j] = _gf.Add(parity[j - 1], _gf.Multiply(feedback, _genPoly[j]));
-                }
+             
+            for (int i = 0; i < data.Length; i++)
+            { 
+                int feedback = _gf.Add(data[i], parity[2 * _t - 1]);
+                 
+                for (int j = 2 * _t - 1; j > 0; j--) 
+                    parity[j] = _gf.Add(parity[j - 1], _gf.Multiply(feedback, _genPoly[j])); 
                 parity[0] = _gf.Multiply(feedback, _genPoly[0]);
             }
-
-            Array.Copy(data, 0, codeword, 0, _k);
+             
+            Array.Copy(data, 0, codeword, 0, data.Length);
             for (int i = 0; i < 2 * _t; i++)
-                codeword[_k + i] = (byte)parity[i];
+                codeword[data.Length + i] = (byte)parity[2 * _t - 1 - i];  
 
             return codeword;
         }
