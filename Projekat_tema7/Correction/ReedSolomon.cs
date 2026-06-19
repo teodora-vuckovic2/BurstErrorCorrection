@@ -9,10 +9,10 @@ namespace Projekat_tema7.Correction
     internal class ReedSolomon : IErrorCorrection
     {
         private readonly GaloisField _gf;
-        private readonly int _t;    // Broj grešaka koje se koriguju
-        private readonly int _n;    // Dužina bloka (n = 2^m - 1)
-        private readonly int _k;    // Dužina poruke (k = n - 2*t)
-        private readonly int[] _genPoly; // Generatorski polinom
+        private readonly int _t;    
+        private readonly int _n;   
+        private readonly int _k;   
+        private readonly int[] _genPoly; 
 
         public ReedSolomon(int m, int t)
         {
@@ -23,26 +23,22 @@ namespace Projekat_tema7.Correction
             _genPoly = GenerateGeneratorPolynomial();
         }
 
-        // 1. Generisanje generatorskog polinoma (g(x) = (x-a^1)(x-a^2)...)
         private int[] GenerateGeneratorPolynomial()
         {
-            int[] poly = { 1 }; // Početni polinom 1
+            int[] poly = { 1 }; 
             for (int i = 1; i <= 2 * _t; i++)
             {
-                int[] factor = { _gf.GetAlphaTo(i), 1 }; // (x + alpha^i)
+                int[] factor = { _gf.GetAlphaTo(i), 1 }; 
                 poly = MultiplyPolynomials(poly, factor);
             }
             return poly;
         }
 
-        // 2. Encode: Sistematsko kodiranje
         public byte[] Encode(byte[] data)
         {
-            // Kodna reč je: [Poruka] + [Paritet]
             byte[] codeword = new byte[_n];
             int[] parity = new int[2 * _t];
 
-            // Feedback shift register logika za deljenje polinoma
             for (int i = 0; i < _k; i++)
             {
                 int feedback = _gf.Add(data[i], parity[_t * 2 - 1]);
@@ -53,7 +49,6 @@ namespace Projekat_tema7.Correction
                 parity[0] = _gf.Multiply(feedback, _genPoly[0]);
             }
 
-            // Spajanje poruke i pariteta
             Array.Copy(data, 0, codeword, 0, _k);
             for (int i = 0; i < 2 * _t; i++)
                 codeword[_k + i] = (byte)parity[i];
@@ -66,7 +61,6 @@ namespace Projekat_tema7.Correction
             throw new NotImplementedException("Dekoder ćemo implementirati nakon što potvrdimo da Enkoder radi!");
         }
 
-        // Pomoćna metoda za množenje polinoma
         private int[] MultiplyPolynomials(int[] p1, int[] p2)
         {
             int[] res = new int[p1.Length + p2.Length - 1];

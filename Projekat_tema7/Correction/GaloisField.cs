@@ -10,8 +10,8 @@ namespace Projekat_tema7.Correction
     {
         private readonly int[] alphaTo;
         private readonly int[] indexOf;
-        private readonly int fieldSize; // n = 2^m - 1
-        private readonly int m;         // stepen polja
+        private readonly int fieldSize; 
+        private readonly int m;         
 
         public GaloisField(int m = 4, int primitivePolynomial = 0x13)
         {
@@ -48,17 +48,14 @@ namespace Projekat_tema7.Correction
             indexOf[0] = -1;
         }
 
-        // Sabiranje u GF(2^m) je jednostavno XOR
         public int Add(int a, int b) => a ^ b;
 
-        // Množenje pomoću tabela (index_of[a] + index_of[b])
         public int Multiply(int a, int b)
         {
             if (a == 0 || b == 0) return 0;
             return alphaTo[(indexOf[a] + indexOf[b]) % fieldSize];
         }
 
-        // Deljenje (množenje inverznim elementom)
         public int Divide(int a, int b)
         {
             if (a == 0) return 0;
@@ -66,10 +63,8 @@ namespace Projekat_tema7.Correction
             return alphaTo[(indexOf[a] - indexOf[b] + fieldSize) % fieldSize];
         }
 
-        // Inverzija elementa
         public int Inverse(int a) => alphaTo[fieldSize - indexOf[a]];
 
-        // Pristup tabelama za napredne operacije (potrebno za Berlekamp-Massey)
         public int GetAlphaTo(int i) => alphaTo[i % fieldSize];
         public int GetIndexOf(int a) => a == 0 ? -1 : indexOf[a];
     }
