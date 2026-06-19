@@ -9,8 +9,6 @@ namespace Projekat_tema7
     public interface IErrorCorrection
     {
         byte[] Encode(byte[] data);
-        byte[] Decode(byte[] data);
-        //test
-        // jos jedan komentar
+        byte[] Decode(byte[] data); 
     }
 }
