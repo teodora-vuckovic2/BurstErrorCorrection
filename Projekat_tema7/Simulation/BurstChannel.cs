@@ -25,5 +25,13 @@ namespace Projekat_tema7.Simulation
             }
             return noisyData;
         }
+
+        public byte[] InjectSpecificError(byte[] data, int position, byte errorValue)
+        {
+            byte[] corrupted = (byte[])data.Clone(); 
+            if (position >= 0 && position < corrupted.Length) 
+                corrupted[position] ^= errorValue; 
+            return corrupted;
+        }
     }
 }
