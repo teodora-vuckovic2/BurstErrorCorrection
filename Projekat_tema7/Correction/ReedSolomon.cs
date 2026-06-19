@@ -35,24 +35,47 @@ namespace Projekat_tema7.Correction
         }
 
         public byte[] Encode(byte[] data)
-        { 
+        {
             byte[] codeword = new byte[_n];
             int[] parity = new int[2 * _t];
-             
+
+            // U profesorovom kodu: data[0] je najznačajniji koeficijent
             for (int i = 0; i < data.Length; i++)
-            { 
+            {
                 int feedback = _gf.Add(data[i], parity[2 * _t - 1]);
-                 
-                for (int j = 2 * _t - 1; j > 0; j--) 
-                    parity[j] = _gf.Add(parity[j - 1], _gf.Multiply(feedback, _genPoly[j])); 
+                for (int j = 2 * _t - 1; j > 0; j--)
+                    parity[j] = _gf.Add(parity[j - 1], _gf.Multiply(feedback, _genPoly[j]));
                 parity[0] = _gf.Multiply(feedback, _genPoly[0]);
             }
-             
+
+            // Kodna reč: [Data] [Parity]
             Array.Copy(data, 0, codeword, 0, data.Length);
             for (int i = 0; i < 2 * _t; i++)
-                codeword[data.Length + i] = (byte)parity[2 * _t - 1 - i];  
+                codeword[data.Length + i] = (byte)parity[2 * _t - 1 - i];
 
             return codeword;
+        }
+
+        public int[] ComputeSyndromes(byte[] codeword)
+        {
+            int[] syndromes = new int[2 * _t];
+            for (int i = 1; i <= 2 * _t; i++)
+            {
+                int syndrome = 0;
+                int alpha_i = _gf.GetAlphaTo(i);
+                int alpha_pow = 1; // Ovo će biti (alpha^i)^j
+
+                for (int j = 0; j < _n; j++)
+                {
+                    // Profesorov metod: s = sum(c[j] * (alpha^i)^j)
+                    if (codeword[j] != 0)
+                        syndrome = _gf.Add(syndrome, _gf.Multiply(codeword[j], alpha_pow));
+
+                    alpha_pow = _gf.Multiply(alpha_pow, alpha_i);
+                }
+                syndromes[i - 1] = syndrome;
+            }
+            return syndromes;
         }
 
         public byte[] Decode(byte[] data)
