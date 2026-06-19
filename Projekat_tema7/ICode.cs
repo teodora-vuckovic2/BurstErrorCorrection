@@ -11,5 +11,6 @@ namespace Projekat_tema7
         byte[] Encode(byte[] data);
         byte[] Decode(byte[] data);
         //test
+        // jos jedan komentar
     }
 }
