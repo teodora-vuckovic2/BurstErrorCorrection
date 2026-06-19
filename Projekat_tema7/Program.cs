@@ -1,4 +1,4 @@
-﻿using Projekat_tema7;
+﻿using Projekat_tema7.Correction;
 using Projekat_tema7.Detection;
 using System;
 
@@ -26,5 +26,13 @@ class Program
         Console.WriteLine($"Inverz: Inverz od 2 je {inv} (Očekivano: 8)");
 
         Console.WriteLine($"Sabiranje: 5 ^ 3 = {gf.Add(5, 3)} (Očekivano: 6)");
+
+        // 3. Testiranje Reed-Solomon kodiranja
+        var rs = new ReedSolomon(4, 3); // m=4 (GF16), t=3 (može ispraviti 3 greške)
+        byte[] poruka = { 8, 6, 8, 1, 2, 4, 15, 9, 9 };
+        byte[] kodirano = rs.Encode(poruka);
+
+        Console.WriteLine("Kodirana poruka (data + parity):");
+        Console.WriteLine(string.Join(", ", kodirano));
     }
 }

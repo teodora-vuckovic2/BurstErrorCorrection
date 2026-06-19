@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Projekat_tema7
+namespace Projekat_tema7.Correction
 {
     internal class GaloisField
     {
@@ -16,9 +16,9 @@ namespace Projekat_tema7
         public GaloisField(int m = 4, int primitivePolynomial = 0x13)
         {
             this.m = m;
-            this.fieldSize = (1 << m) - 1;
-            this.alphaTo = new int[fieldSize + 1];
-            this.indexOf = new int[fieldSize + 1];
+            fieldSize = (1 << m) - 1;
+            alphaTo = new int[fieldSize + 1];
+            indexOf = new int[fieldSize + 1];
 
             GenerateTables(primitivePolynomial);
         }
@@ -31,7 +31,7 @@ namespace Projekat_tema7
             {
                 alphaTo[i] = mask;
                 indexOf[alphaTo[i]] = i;
-                if ((poly & (1 << i)) != 0)
+                if ((poly & 1 << i) != 0)
                     alphaTo[m] ^= mask;
                 mask <<= 1;
             }
@@ -40,7 +40,7 @@ namespace Projekat_tema7
             for (int i = m + 1; i <= fieldSize; i++)
             {
                 if (alphaTo[i - 1] >= mask)
-                    alphaTo[i] = alphaTo[m] ^ ((alphaTo[i - 1] ^ mask) << 1);
+                    alphaTo[i] = alphaTo[m] ^ (alphaTo[i - 1] ^ mask) << 1;
                 else
                     alphaTo[i] = alphaTo[i - 1] << 1;
                 indexOf[alphaTo[i]] = i % fieldSize;
@@ -71,6 +71,6 @@ namespace Projekat_tema7
 
         // Pristup tabelama za napredne operacije (potrebno za Berlekamp-Massey)
         public int GetAlphaTo(int i) => alphaTo[i % fieldSize];
-        public int GetIndexOf(int a) => (a == 0) ? -1 : indexOf[a];
+        public int GetIndexOf(int a) => a == 0 ? -1 : indexOf[a];
     }
 }
