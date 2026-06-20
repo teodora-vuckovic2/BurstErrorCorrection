@@ -25,15 +25,14 @@ class Program
         Console.WriteLine($"Originalni podaci: {string.Join(", ", originalData)}");
         Console.WriteLine($"Kodirana reč: {string.Join(", ", encoded)}");
         Console.WriteLine($"Sindromi (treba biti sve 0): {string.Join(", ", syndromes)}");
-        Console.WriteLine($"Da li je enkoder validan? {isSyndromeZero}");
+        Console.WriteLine($"Da li je enkoder validan? {isSyndromeZero} \n \n");
 
         if (!isSyndromeZero)
         {
             Console.WriteLine("UPOZORENJE: Enkoder ne generiše validne kodne reči!");
-            return; // Prekini ako enkoder ne radi
+            return; 
         }
-
-        // --- Ostatak tvog koda ---
+         
         byte[] myData = { 10, 20, 30, 40, 50, 60, 70, 80 };
         BurstChannel channel = new BurstChannel { BurstProbability = 0.5 };
         CRC32 crc = new CRC32();

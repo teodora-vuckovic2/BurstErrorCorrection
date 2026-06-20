@@ -25,33 +25,99 @@ namespace Projekat_tema7.Correction
 
         private int[] GenerateGeneratorPolynomial()
         {
-            int[] poly = { 1 }; 
-            for (int i = 1; i <= 2 * _t; i++)
+            int paritySymbols = _n - _k;
+
+            int[] gg = new int[paritySymbols + 1];
+
+            gg[0] = 2;
+            gg[1] = 1;
+
+            for (int i = 2; i <= paritySymbols; i++)
             {
-                int[] factor = { _gf.GetAlphaTo(i), 1 }; 
-                poly = MultiplyPolynomials(poly, factor);
+                gg[i] = 1;
+
+                for (int j = i - 1; j > 0; j--)
+                {
+                    if (gg[j] != 0)
+                    {
+                        gg[j] =
+                            gg[j - 1] ^
+                            _gf.GetAlphaTo(
+                                (_gf.GetIndexOf(gg[j]) + i) % _n);
+                    }
+                    else
+                    {
+                        gg[j] = gg[j - 1];
+                    }
+                }
+
+                gg[0] =
+                    _gf.GetAlphaTo(
+                        (_gf.GetIndexOf(gg[0]) + i) % _n);
             }
-            return poly;
+
+            for (int i = 0; i <= paritySymbols; i++)
+                gg[i] = _gf.GetIndexOf(gg[i]);
+
+            return gg;
         }
 
         public byte[] Encode(byte[] data)
         {
-            byte[] codeword = new byte[_n];
-            int[] parity = new int[2 * _t];
+            if (data.Length != _k)
+                throw new ArgumentException(
+                    $"RS({_n},{_k}) zahteva {_k} simbola.");
 
-            // U profesorovom kodu: data[0] je najznačajniji koeficijent
-            for (int i = 0; i < data.Length; i++)
+            int paritySymbols = _n - _k;
+
+            int[] bb = new int[paritySymbols];
+
+            for (int i = 0; i < paritySymbols; i++)
+                bb[i] = 0;
+
+            for (int i = _k - 1; i >= 0; i--)
             {
-                int feedback = _gf.Add(data[i], parity[2 * _t - 1]);
-                for (int j = 2 * _t - 1; j > 0; j--)
-                    parity[j] = _gf.Add(parity[j - 1], _gf.Multiply(feedback, _genPoly[j]));
-                parity[0] = _gf.Multiply(feedback, _genPoly[0]);
+                int feedback =
+                    _gf.GetIndexOf(
+                        data[i] ^ bb[paritySymbols - 1]);
+
+                if (feedback != -1)
+                {
+                    for (int j = paritySymbols - 1; j > 0; j--)
+                    {
+                        if (_genPoly[j] != -1)
+                        {
+                            bb[j] =
+                                bb[j - 1] ^
+                                _gf.GetAlphaTo(
+                                    (_genPoly[j] + feedback) % _n);
+                        }
+                        else
+                        {
+                            bb[j] = bb[j - 1];
+                        }
+                    }
+
+                    bb[0] =
+                        _gf.GetAlphaTo(
+                            (_genPoly[0] + feedback) % _n);
+                }
+                else
+                {
+                    for (int j = paritySymbols - 1; j > 0; j--)
+                        bb[j] = bb[j - 1];
+
+                    bb[0] = 0;
+                }
             }
 
-            // Kodna reč: [Data] [Parity]
-            Array.Copy(data, 0, codeword, 0, data.Length);
-            for (int i = 0; i < 2 * _t; i++)
-                codeword[data.Length + i] = (byte)parity[2 * _t - 1 - i];
+            byte[] codeword = new byte[_n]; 
+
+            for (int i = 0; i < paritySymbols; i++)
+                codeword[i] = (byte)bb[i];
+
+            for (int i = 0; i < _k; i++)
+                codeword[i + paritySymbols] = data[i];
 
             return codeword;
         }
@@ -59,22 +125,23 @@ namespace Projekat_tema7.Correction
         public int[] ComputeSyndromes(byte[] codeword)
         {
             int[] syndromes = new int[2 * _t];
+
             for (int i = 1; i <= 2 * _t; i++)
             {
                 int syndrome = 0;
-                int alpha_i = _gf.GetAlphaTo(i);
-                int alpha_pow = 1; // Ovo će biti (alpha^i)^j
 
                 for (int j = 0; j < _n; j++)
                 {
-                    // Profesorov metod: s = sum(c[j] * (alpha^i)^j)
                     if (codeword[j] != 0)
-                        syndrome = _gf.Add(syndrome, _gf.Multiply(codeword[j], alpha_pow));
-
-                    alpha_pow = _gf.Multiply(alpha_pow, alpha_i);
+                    {
+                        syndrome ^= _gf.GetAlphaTo(
+                            (_gf.GetIndexOf(codeword[j]) + i * j) % _n);
+                    }
                 }
+
                 syndromes[i - 1] = syndrome;
             }
+
             return syndromes;
         }
 

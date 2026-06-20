@@ -26,26 +26,38 @@ namespace Projekat_tema7.Correction
         private void GenerateTables(int poly)
         {
             int mask = 1;
+
             alphaTo[m] = 0;
+
             for (int i = 0; i < m; i++)
             {
                 alphaTo[i] = mask;
                 indexOf[alphaTo[i]] = i;
-                if ((poly & 1 << i) != 0)
+
+                if ((poly & (1 << i)) != 0)
                     alphaTo[m] ^= mask;
+
                 mask <<= 1;
             }
 
+            indexOf[alphaTo[m]] = m;
+
             mask >>= 1;
-            for (int i = m + 1; i <= fieldSize; i++)
+
+            for (int i = m + 1; i < fieldSize; i++)
             {
                 if (alphaTo[i - 1] >= mask)
-                    alphaTo[i] = alphaTo[m] ^ (alphaTo[i - 1] ^ mask) << 1;
+                    alphaTo[i] = alphaTo[m] ^
+                                 ((alphaTo[i - 1] ^ mask) << 1);
                 else
                     alphaTo[i] = alphaTo[i - 1] << 1;
-                indexOf[alphaTo[i]] = i % fieldSize;
+
+                indexOf[alphaTo[i]] = i;
             }
+
             indexOf[0] = -1;
+
+            alphaTo[fieldSize] = 1;
         }
 
         public int Add(int a, int b) => a ^ b;
