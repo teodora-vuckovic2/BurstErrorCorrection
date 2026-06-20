@@ -8,38 +8,69 @@ class Program
 {
     static void Main()
     {
-        // 1. Inicijalizacija RS-a (m=4, t=2 -> n=15, k=11)
         ReedSolomon rs = new ReedSolomon(4, 2);
-
-        // PAŽNJA: Data mora imati tačno _k = 11 elemenata za m=4, t=2
         byte[] originalData = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
 
-        // Test 1: Enkodiranje
+        Console.Title = "Reed-Solomon Test Suite";
+
+        RunBasicCorrectionTest(rs, originalData);
+        RunEdgeCaseTests(rs, originalData);
+        RunStressTestSequence(rs);
+
+        Console.WriteLine("\nSvi testovi završeni. Pritisni bilo koji taster za izlaz.");
+        Console.ReadKey();
+    }
+    static void RunBasicCorrectionTest(ReedSolomon rs, byte[] originalData)
+    {
+        Console.WriteLine("=== 1. OSNOVNI TEST DEKODERA ===");
         byte[] encoded = rs.Encode(originalData);
+        byte[] corrupted = (byte[])encoded.Clone();
 
-        // Test 2: Provera sindroma (Mora biti sve nula)
-        int[] syndromes = rs.ComputeSyndromes(encoded);
-        bool isSyndromeZero = syndromes.All(s => s == 0);
+        corrupted[0] ^= 5;
+        corrupted[5] ^= 10;
 
-        Console.WriteLine("--- Reed-Solomon Test ---");
-        Console.WriteLine($"Originalni podaci: {string.Join(", ", originalData)}");
-        Console.WriteLine($"Kodirana reč: {string.Join(", ", encoded)}");
-        Console.WriteLine($"Sindromi (treba biti sve 0): {string.Join(", ", syndromes)}");
-        Console.WriteLine($"Da li je enkoder validan? {isSyndromeZero} \n \n");
+        byte[] corrected = rs.Decode(corrupted);
 
-        if (!isSyndromeZero)
-        {
-            Console.WriteLine("UPOZORENJE: Enkoder ne generiše validne kodne reči!");
-            return; 
-        }
-         
+        bool success = originalData.SequenceEqual(corrected.Skip(4)); 
+
+        Console.WriteLine($"Originalni podaci : {string.Join(", ", originalData)}");
+        Console.WriteLine($"Podaci iz dekodera: {string.Join(", ", corrected.Skip(4))}");
+        Console.WriteLine($"Status ispravke   : {(success ? "USPEH" : "NEUSPEH")}");
+        Console.WriteLine("--------------------------------------\n");
+    }
+
+    static void RunEdgeCaseTests(ReedSolomon rs, byte[] data)
+    {
+        Console.WriteLine("=== 2. GRANIČNI SLUČAJEVI (Edge Cases) ===");
+        TestRS(rs, data, new int[] { }, new int[] { });             
+        TestRS(rs, data, new int[] { 4 }, new int[] { 7 });         
+        TestRS(rs, data, new int[] { 2, 8 }, new int[] { 3, 12 });  
+        TestRS(rs, data, new int[] { 0, 1 }, new int[] { 5, 2 });  
+        Console.WriteLine("--------------------------------------\n");
+    }
+
+    static void RunStressTestSequence(ReedSolomon rs)
+    {
+        Console.WriteLine("=== 3. STRES TEST KANALA ===");
         byte[] myData = { 10, 20, 30, 40, 50, 60, 70, 80 };
-        BurstChannel channel = new BurstChannel { BurstProbability = 0.5 };
-        CRC32 crc = new CRC32();
-        PerformanceAnalyzer analyzer = new PerformanceAnalyzer();
+        var analyzer = new PerformanceAnalyzer();
+        analyzer.RunStressTest(500, myData, new BurstChannel { BurstProbability = 0.5 }, new CRC32());
+    }
 
-        analyzer.RunStressTest(500, myData, channel, crc);
+    static void TestRS(ReedSolomon rs, byte[] data, int[] errorIndices, int[] errorValues)
+    {
+        byte[] encoded = rs.Encode(data);
+        byte[] corrupted = (byte[])encoded.Clone();
 
+        for (int i = 0; i < errorIndices.Length; i++)
+            corrupted[errorIndices[i]] ^= (byte)errorValues[i];
 
+        byte[] corrected = rs.Decode(corrupted);
+
+        bool success = true;
+        for (int i = 0; i < data.Length; i++)
+            if (corrected[i + 4] != data[i]) success = false;
+
+        Console.WriteLine($"Test ({errorIndices.Length} grešaka) na [{string.Join(",", errorIndices)}] : {(success ? "USPEH" : "NEUSPEH")}");
     }
 }

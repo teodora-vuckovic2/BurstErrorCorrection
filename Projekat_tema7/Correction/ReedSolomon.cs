@@ -147,7 +147,17 @@ namespace Projekat_tema7.Correction
 
         public byte[] Decode(byte[] data)
         {
-            throw new NotImplementedException("Dekoder ćemo implementirati nakon što potvrdimo da Enkoder radi!");
+            int[] syndromes = ComputeSyndromes(data);
+
+            if (syndromes.All(s => s == 0)) return data;
+
+            int[] sigma = BerlekampMassey(syndromes);
+
+            int[] errorLocations = ChienSearch(sigma);
+
+            byte[] correctedData = Forney(data, syndromes, errorLocations);
+
+            return correctedData;
         }
 
         private int[] MultiplyPolynomials(int[] p1, int[] p2)
@@ -156,6 +166,112 @@ namespace Projekat_tema7.Correction
             for (int i = 0; i < p1.Length; i++)
                 for (int j = 0; j < p2.Length; j++)
                     res[i + j] = _gf.Add(res[i + j], _gf.Multiply(p1[i], p2[j]));
+            return res;
+        }
+
+        private int[] BerlekampMassey(int[] syndromes)
+        {
+            int n = syndromes.Length;
+            int[] C = new int[n + 1]; C[0] = 1; 
+            int[] B = new int[n + 1]; B[0] = 1;
+            int L = 0, m = 1, b = 1;
+
+            for (int n_idx = 0; n_idx < n; n_idx++)
+            {
+                int d = syndromes[n_idx];
+                for (int i = 1; i <= L; i++)
+                {
+                    d = _gf.Add(d, _gf.Multiply(C[i], syndromes[n_idx - i]));
+                }
+
+                if (d == 0)
+                {
+                    m++;
+                }
+                else
+                {
+                    int[] T = (int[])C.Clone();
+                    int factor = _gf.Multiply(d, _gf.Inverse(b));
+
+                    for (int i = 0; i + m < C.Length; i++)
+                    {
+                        C[i + m] = _gf.Add(C[i + m], _gf.Multiply(factor, B[i]));
+                    }
+
+                    if (2 * L <= n_idx)
+                    {
+                        L = n_idx + 1 - L;
+                        B = T;
+                        b = d;
+                        m = 1;
+                    }
+                    else
+                    {
+                        m++;
+                    }
+                }
+            }
+            return C.Take(L + 1).ToArray();
+        }
+
+        private int[] ChienSearch(int[] sigma)
+        {
+            List<int> locations = new List<int>();
+
+            for (int i = 0; i < _n; i++)
+            {
+                int x = _gf.GetAlphaTo(i);
+
+                int sum = sigma[sigma.Length - 1];
+                for (int j = sigma.Length - 2; j >= 0; j--)
+                {
+                    sum = _gf.Add(_gf.Multiply(sum, x), sigma[j]);
+                }
+
+                if (sum == 0)
+                {
+                    locations.Add((_n - i) % _n);
+                }
+            }
+            return locations.Distinct().ToArray();
+        }
+
+        private byte[] Forney(byte[] data, int[] syndromes, int[] errorLocations)
+        {
+            byte[] result = (byte[])data.Clone();
+            if (errorLocations.Length == 0) return result;
+
+            int[] sigma = BerlekampMassey(syndromes);
+            int[] omega = MultiplyPolynomials(syndromes, sigma); 
+            omega = omega.Take(2 * _t).ToArray();
+
+            foreach (int pos in errorLocations)
+            {
+                int X = _gf.GetAlphaTo(pos);
+                int invX = _gf.Inverse(X);
+
+                int num = 0;
+                for (int i = 0; i < omega.Length; i++)
+                    num = _gf.Add(num, _gf.Multiply(omega[i], Power(invX, i)));
+
+                int den = 0;
+                for (int i = 1; i < sigma.Length; i += 2)
+                    den = _gf.Add(den, _gf.Multiply(sigma[i], Power(invX, i - 1)));
+
+                if (den == 0) continue; 
+                int errorValue = _gf.Divide(num, den);
+
+                result[pos] = (byte)(result[pos] ^ errorValue);
+
+
+            }
+
+            return result;
+        }
+        private int Power(int a, int power)
+        {
+            int res = 1;
+            for (int i = 0; i < power; i++) res = _gf.Multiply(res, a);
             return res;
         }
     }
