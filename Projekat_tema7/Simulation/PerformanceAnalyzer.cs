@@ -1,59 +1,95 @@
 ﻿using System;
 using System.Linq;
+using Projekat_tema7.Correction;
 using Projekat_tema7.Detection;
 
 namespace Projekat_tema7.Simulation
 {
     public class PerformanceAnalyzer
     {
-        public void RunSimulation(int totalPackets, byte[] data, BurstChannel channel, CRC32 crc)
+        public void RunSimulation(
+            int totalPackets,
+            byte[] data,
+            BurstChannel channel,
+            CRC32 crc)
         {
             int detectedErrors = 0;
-            int undetectedErrors = 0; 
+            int undetectedErrors = 0;
 
             for (int i = 0; i < totalPackets; i++)
             {
                 uint originalCrc = crc.Compute(data);
-                byte[] corrupted = channel.ApplyNoise(data);
-                uint newCrc = crc.Compute(corrupted);
-                 
+
+                byte[] corrupted =
+                    channel.ApplyNoise(data);
+
+                uint newCrc =
+                    crc.Compute(corrupted);
+
                 if (originalCrc != newCrc)
                     detectedErrors++;
-                 
                 else if (!data.SequenceEqual(corrupted))
                     undetectedErrors++;
             }
 
-            Console.WriteLine($"--- REZULTATI ANALIZE ---");
-            Console.WriteLine($"Ukupno paketa: {totalPackets}");
-            Console.WriteLine($"Detektovane greške: {detectedErrors}");
-            Console.WriteLine($"Nedetektovane greške: {undetectedErrors}");
-            Console.WriteLine($"FER (Frame Error Rate): {(double)detectedErrors / totalPackets * 100}%");
+            Console.WriteLine(
+                $"Detektovane greške: {detectedErrors}");
+
+            Console.WriteLine(
+                $"Nedetektovane greške: {undetectedErrors}");
         }
 
-        public void RunStressTest(int packetsPerLevel, byte[] data, BurstChannel channel, CRC32 crc)
+        public void RunStressTest(
+            int packetsPerLevel,
+            byte[] data,
+            BurstChannel channel,
+            ReedSolomon rs)
         {
-            Console.WriteLine("--- STRES TEST KANALA ---");
-            Console.WriteLine("| Prob. Šuma | FER (%) |");
-            Console.WriteLine("--------------------------");
-             
-            for (double prob = 0.1; prob <= 1.05; prob += 0.1)
+            Console.WriteLine();
+            Console.WriteLine(
+                "--- RS STRES TEST ---");
+
+            Console.WriteLine(
+                "| Burst Prob. | Success Rate |");
+
+            Console.WriteLine(
+                "--------------------------------");
+
+            for (double prob = 0.1;
+                 prob <= 1.0;
+                 prob += 0.1)
             {
                 channel.BurstProbability = prob;
-                int detectedErrors = 0;
 
-                for (int i = 0; i < packetsPerLevel; i++)
+                int success = 0;
+
+                for (int i = 0;
+                     i < packetsPerLevel;
+                     i++)
                 {
-                    uint originalCrc = crc.Compute(data);
-                    byte[] corrupted = channel.ApplyNoise(data);
+                    byte[] encoded =
+                        rs.Encode(data);
 
-                    if (originalCrc != crc.Compute(corrupted))
-                        detectedErrors++;
+                    byte[] corrupted =
+                        channel.ApplyNoise(encoded);
+
+                    byte[] corrected =
+                        rs.Decode(corrupted);
+
+                    if (corrected
+                        .Skip(4)
+                        .SequenceEqual(data))
+                    {
+                        success++;
+                    }
                 }
 
-                double fer = (double)detectedErrors / packetsPerLevel * 100;
-                Console.WriteLine($"| {prob,10:P0} | {fer,7:F1}% |");
+                Console.WriteLine(
+                    $"| {prob,10:P0} | " +
+                    $"{(double)success / packetsPerLevel * 100,10:F2}% |");
             }
+
+            Console.WriteLine();
         }
     }
 }
