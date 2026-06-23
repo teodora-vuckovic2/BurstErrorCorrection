@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System; 
+using System.Linq; 
 
 namespace Projekat_tema7.Detection
 {
@@ -37,5 +38,21 @@ namespace Projekat_tema7.Detection
 
             return crc ^ 0xFFFFFFFF;
         }
+
+        private static bool VerifyWithCRC(byte[] originalData, byte[] decodedCodeword)
+        {
+            CRC32 crc = new CRC32();
+
+            uint originalCRC = crc.Compute(originalData);
+
+            byte[] decodedData =
+                decodedCodeword.Skip(4).ToArray();
+
+            uint decodedCRC =
+                crc.Compute(decodedData);
+
+            return originalCRC == decodedCRC;
+        }
     }
+
 }

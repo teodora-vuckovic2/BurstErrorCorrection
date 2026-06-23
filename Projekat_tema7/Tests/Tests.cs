@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Projekat_tema7.Correction;
-using Projekat_tema7.Simulation; 
+using Projekat_tema7.Detection;
+using Projekat_tema7.Simulation;
 
 namespace Projekat_tema7.Tests
 {
@@ -14,6 +12,10 @@ namespace Projekat_tema7.Tests
         {
             Console.WriteLine("=== 1. OSNOVNI TEST ===");
 
+            CRC32 crc = new CRC32();
+
+            uint originalCRC = crc.Compute(data);
+
             byte[] encoded = rs.Encode(data);
             byte[] corrupted = (byte[])encoded.Clone();
 
@@ -22,11 +24,18 @@ namespace Projekat_tema7.Tests
 
             byte[] corrected = rs.Decode(corrupted);
 
-            bool success = data.SequenceEqual(corrected.Skip(4));
+            byte[] decodedData = corrected.Skip(4).ToArray();
+
+            uint decodedCRC = crc.Compute(decodedData);
+
+            bool success = data.SequenceEqual(decodedData);
 
             Console.WriteLine($"Original: {string.Join(",", data)}");
-            Console.WriteLine($"Decoded : {string.Join(",", corrected.Skip(4))}");
-            Console.WriteLine($"Status  : {(success ? "USPEH" : "NEUSPEH")}");
+            Console.WriteLine($"Decoded : {string.Join(",", decodedData)}");
+            Console.WriteLine($"Original CRC: {originalCRC}");
+            Console.WriteLine($"Decoded CRC : {decodedCRC}");
+            Console.WriteLine($"CRC Match   : {(originalCRC == decodedCRC ? "DA" : "NE")}");
+            Console.WriteLine($"Status      : {(success ? "USPEH" : "NEUSPEH")}");
             Console.WriteLine("--------------------------------------\n");
         }
 
@@ -46,9 +55,13 @@ namespace Projekat_tema7.Tests
         {
             Console.WriteLine("=== 3. STRESS TEST (RS + BURST) ===");
 
-            BurstChannel channel = new BurstChannel { BurstProbability = 0.5 };
+            BurstChannel channel =
+                new BurstChannel { BurstProbability = 0.5 };
 
-            byte[] data = { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110 };
+            byte[] data =
+            {
+                10,20,30,40,50,60,70,80,90,100,110
+            };
 
             int success = 0;
 
@@ -62,7 +75,9 @@ namespace Projekat_tema7.Tests
                     success++;
             }
 
-            Console.WriteLine($"Success rate: {(double)success / 500 * 100:F2}%");
+            Console.WriteLine(
+                $"Success rate: {(double)success / 500 * 100:F2}%");
+
             Console.WriteLine("--------------------------------------\n");
         }
 
@@ -70,12 +85,21 @@ namespace Projekat_tema7.Tests
         {
             Console.WriteLine("=== 4. BURST LENGTH ANALIZA ===");
 
-            byte[] data = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+            byte[] data =
+            {
+                1,2,3,4,5,6,7,8,9,10,11
+            };
 
             for (int burst = 1; burst <= 5; burst++)
             {
                 int success = 0;
-                BurstChannel channel = new BurstChannel { BurstProbability = 1.0, MaxBurstLength = burst };
+
+                BurstChannel channel =
+                    new BurstChannel
+                    {
+                        BurstProbability = 1.0,
+                        MaxBurstLength = burst
+                    };
 
                 for (int t = 0; t < 300; t++)
                 {
@@ -87,7 +111,8 @@ namespace Projekat_tema7.Tests
                         success++;
                 }
 
-                Console.WriteLine($"Burst {burst} -> {(double)success / 300 * 100:F2}%");
+                Console.WriteLine(
+                    $"Burst {burst} -> {(double)success / 300 * 100:F2}%");
             }
 
             Console.WriteLine();
@@ -97,7 +122,10 @@ namespace Projekat_tema7.Tests
         {
             Console.WriteLine("=== 5. LIMIT TEST ===");
 
-            byte[] data = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+            byte[] data =
+            {
+                1,2,3,4,5,6,7,8,9,10,11
+            };
 
             for (int errors = 0; errors <= 4; errors++)
             {
@@ -117,13 +145,18 @@ namespace Projekat_tema7.Tests
                         success++;
                 }
 
-                Console.WriteLine($"{errors} errors -> {(double)success / 200 * 100:F2}%");
+                Console.WriteLine(
+                    $"{errors} errors -> {(double)success / 200 * 100:F2}%");
             }
 
             Console.WriteLine();
         }
 
-        public static void TestRS(ReedSolomon rs, byte[] data, int[] idx, int[] val)
+        public static void TestRS(
+            ReedSolomon rs,
+            byte[] data,
+            int[] idx,
+            int[] val)
         {
             byte[] encoded = rs.Encode(data);
             byte[] corrupted = (byte[])encoded.Clone();
@@ -135,7 +168,8 @@ namespace Projekat_tema7.Tests
 
             bool ok = data.SequenceEqual(decoded.Skip(4));
 
-            Console.WriteLine($"Test {idx.Length} errors [{string.Join(",", idx)}] -> {(ok ? "USPEH" : "NEUSPEH")}");
+            Console.WriteLine(
+                $"Test {idx.Length} errors [{string.Join(",", idx)}] -> {(ok ? "USPEH" : "NEUSPEH")}");
         }
     }
 }
