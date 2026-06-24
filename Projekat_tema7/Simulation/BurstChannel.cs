@@ -4,42 +4,32 @@ namespace Projekat_tema7.Simulation
 {
     public class BurstChannel
     {
-        private Random _rng = new Random();
+        private Random rand = new Random();
 
-        public double BurstProbability { get; set; } = 0.1;
-        public int MaxBurstLength { get; set; } = 5;
+        public double Probability { get; set; } = 0.1;
+        public int MaxLength { get; set; } = 5;
 
         public byte[] ApplyNoise(byte[] data)
         {
-            byte[] noisy = (byte[])data.Clone();
+            byte[] res = (byte[])data.Clone();
 
-            if (_rng.NextDouble() < BurstProbability)
+            if (rand.NextDouble() < Probability)
             {
-                int start = _rng.Next(data.Length);
-                int length = _rng.Next(1, MaxBurstLength + 1);
+                int start = rand.Next(data.Length);
+                int length = rand.Next(1, MaxLength + 1);
 
                 for (int i = 0; i < length; i++)
                 {
                     int pos = start + i;
 
-                    if (pos >= noisy.Length)
+                    if (pos >= res.Length)
                         break;
 
-                    noisy[pos] ^= (byte)_rng.Next(1, 256);
+                    byte temp = (byte)rand.Next(1, 256);
+                    res[pos] ^= temp; 
                 }
-            }
-
-            return noisy;
-        }
-
-        public byte[] InjectSpecificError(byte[] data, int position, byte errorValue)
-        {
-            byte[] corrupted = (byte[])data.Clone();
-
-            if (position >= 0 && position < corrupted.Length)
-                corrupted[position] ^= errorValue;
-
-            return corrupted;
-        }
+            }  
+            return res;
+        } 
     }
 }

@@ -9,7 +9,7 @@ namespace Projekat_tema7.Correction
         private readonly int fieldSize;
         private readonly int m;
 
-        public GaloisField(int m = 4, int primitivePolynomial = 0x13)
+        public GaloisField(int m = 4, int poly = 0x13)
         {
             this.m = m;
             fieldSize = (1 << m) - 1;
@@ -17,13 +17,12 @@ namespace Projekat_tema7.Correction
             alphaTo = new int[fieldSize + 1];
             indexOf = new int[fieldSize + 1];
 
-            GenerateTables(primitivePolynomial);
+            GenerateTables(poly);
         }
 
         private void GenerateTables(int poly)
         {
-            int mask = 1;
-
+            int mask = 1; 
             alphaTo[m] = 0;
 
             for (int i = 0; i < m; i++)
@@ -37,8 +36,7 @@ namespace Projekat_tema7.Correction
                 mask <<= 1;
             }
 
-            indexOf[alphaTo[m]] = m;
-
+            indexOf[alphaTo[m]] = m; 
             mask >>= 1;
 
             for (int i = m + 1; i < fieldSize; i++)
@@ -55,7 +53,10 @@ namespace Projekat_tema7.Correction
             alphaTo[fieldSize] = 1;
         }
 
-        public int Add(int a, int b) => a ^ b;
+        public int Add(int a, int b)
+        {
+            return a ^ b;
+        }
 
         public int Multiply(int a, int b)
         {
@@ -72,31 +73,35 @@ namespace Projekat_tema7.Correction
         public int Divide(int a, int b)
         {
             if (a == 0) return 0;
-            if (b == 0) throw new DivideByZeroException();
+            if (b == 0) throw new DivideByZeroException("Nemoguće deliti nulom!");
 
             int ia = GetIndexOf(a);
             int ib = GetIndexOf(b);
 
-            return alphaTo[(ia - ib + fieldSize) % fieldSize];
+            int rez = (ia - ib + fieldSize) % fieldSize;
+            return alphaTo[rez];
         }
 
         public int Inverse(int a)
         {
             int ia = GetIndexOf(a);
-            return ia < 0 ? 0 : alphaTo[fieldSize - ia];
+            if (ia < 0) return 0;
+            return alphaTo[fieldSize - ia];
         }
 
         public int GetAlphaTo(int i)
         {
             if (fieldSize <= 0) return 0;
-            if (i < 0) i = (i % fieldSize + fieldSize) % fieldSize;
+            if (i < 0) 
+                i = (i % fieldSize + fieldSize) % fieldSize;
             return alphaTo[i];
         }
 
         public int GetIndexOf(int a)
         {
             if (a <= 0) return -1;
-            if (a >= indexOf.Length) return -1;
+            if (a >= indexOf.Length) 
+                return -1;
             return indexOf[a];
         }
     }

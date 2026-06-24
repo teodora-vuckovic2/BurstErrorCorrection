@@ -6,26 +6,25 @@ namespace Projekat_tema7.Correction
 {
     public class ReedSolomon : IErrorCorrection
     {
-        private readonly GaloisField _gf;
-        private readonly int _t;
-        private readonly int _n;
-        private readonly int _k;
-        private readonly int[] _genPoly;
+        private readonly GaloisField gf;
+        private readonly int t;
+        private readonly int n;
+        private readonly int k;
+        private readonly int[] generator;
 
         public ReedSolomon(int m, int t)
         {
-            _gf = new GaloisField(m);
-            _t = t;
-            _n = (1 << m) - 1;
-            _k = _n - (2 * t);
+            this.gf = new GaloisField(m);
+            this.t = t;
+            this.n = (1 << m) - 1;
+            this.k = n - (2 * t);
 
-            _genPoly = GenerateGeneratorPolynomial();
+            this.generator = GenerateGeneratorPolynomial();
         }
 
         private int[] GenerateGeneratorPolynomial()
         {
-            int paritySymbols = _n - _k;
-
+            int paritySymbols = n - k; 
             int[] gg = new int[paritySymbols + 1];
 
             gg[0] = 2;
@@ -37,60 +36,47 @@ namespace Projekat_tema7.Correction
 
                 for (int j = i - 1; j > 0; j--)
                 {
-                    if (gg[j] != 0)
-                    {
-                        gg[j] = gg[j - 1] ^
-                            _gf.GetAlphaTo(
-                                (_gf.GetIndexOf(gg[j]) + i) % _n);
-                    }
-                    else
-                    {
-                        gg[j] = gg[j - 1];
-                    }
+                    if (gg[j] != 0) 
+                        gg[j] = gg[j - 1] ^ gf.GetAlphaTo((gf.GetIndexOf(gg[j]) + i) % n); 
+                    else 
+                        gg[j] = gg[j - 1]; 
                 }
 
-                gg[0] =
-                    _gf.GetAlphaTo(
-                        (_gf.GetIndexOf(gg[0]) + i) % _n);
+                gg[0] = gf.GetAlphaTo((gf.GetIndexOf(gg[0]) + i) % n);
             }
 
             for (int i = 0; i <= paritySymbols; i++)
-                gg[i] = _gf.GetIndexOf(gg[i]);
+                gg[i] = gf.GetIndexOf(gg[i]);
 
             return gg;
         }
 
         public byte[] Encode(byte[] data)
         {
-            if (data.Length != _k)
-                throw new ArgumentException($"RS({_n},{_k}) zahteva {_k} simbola.");
+            if (data.Length != k)
+                throw new ArgumentException($"RS({n},{k}) zahteva {k} simbola.");
 
-            int paritySymbols = _n - _k;
+            int paritySymbols = n - k;
             int[] bb = new int[paritySymbols];
 
             for (int i = 0; i < paritySymbols; i++)
                 bb[i] = 0;
 
-            for (int i = _k - 1; i >= 0; i--)
+            for (int i = k - 1; i >= 0; i--)
             {
-                int feedback = _gf.GetIndexOf(data[i] ^ bb[paritySymbols - 1]);
+                int feedback = gf.GetIndexOf(data[i] ^ bb[paritySymbols - 1]);
 
                 if (feedback != -1)
                 {
                     for (int j = paritySymbols - 1; j > 0; j--)
                     {
-                        if (_genPoly[j] != -1)
-                        {
-                            bb[j] = bb[j - 1] ^
-                                _gf.GetAlphaTo((_genPoly[j] + feedback) % _n);
-                        }
-                        else
-                        {
-                            bb[j] = bb[j - 1];
-                        }
+                        if (generator[j] != -1) 
+                            bb[j] = bb[j - 1] ^ gf.GetAlphaTo((generator[j] + feedback) % n); 
+                        else 
+                            bb[j] = bb[j - 1]; 
                     }
 
-                    bb[0] = _gf.GetAlphaTo((_genPoly[0] + feedback) % _n);
+                    bb[0] = gf.GetAlphaTo((generator[0] + feedback) % n);
                 }
                 else
                 {
@@ -101,12 +87,12 @@ namespace Projekat_tema7.Correction
                 }
             }
 
-            byte[] codeword = new byte[_n];
+            byte[] codeword = new byte[n];
 
             for (int i = 0; i < paritySymbols; i++)
                 codeword[i] = (byte)bb[i];
 
-            for (int i = 0; i < _k; i++)
+            for (int i = 0; i < k; i++)
                 codeword[i + paritySymbols] = data[i];
 
             return codeword;
@@ -116,8 +102,16 @@ namespace Projekat_tema7.Correction
         {
             int[] syndromes = ComputeSyndromes(data);
 
-            if (syndromes.All(s => s == 0))
-                return data;
+            bool noErr = true;
+            for (int i = 0; i < syndromes.Length; i++)
+            {
+                if (syndromes[i] != 0)
+                {
+                    noErr = false;
+                    break;
+                }
+            }
+            if (noErr) return data;
 
             int[] sigma = BerlekampMassey(syndromes);
             int[] errorLocations = ChienSearch(sigma);
@@ -127,20 +121,14 @@ namespace Projekat_tema7.Correction
 
         public int[] ComputeSyndromes(byte[] codeword)
         {
-            int[] syndromes = new int[2 * _t];
+            int[] syndromes = new int[2 * t];
 
-            for (int i = 1; i <= 2 * _t; i++)
+            for (int i = 1; i <= 2 * t; i++)
             {
-                int syndrome = 0;
-
-                for (int j = 0; j < codeword.Length; j++)
-                {
-                    if (codeword[j] != 0)
-                    {
-                        syndrome ^= _gf.GetAlphaTo(
-                            (_gf.GetIndexOf(codeword[j]) + i * j) % _n);
-                    }
-                }
+                int syndrome = 0; 
+                for (int j = 0; j < codeword.Length; j++) 
+                    if (codeword[j] != 0) 
+                        syndrome ^= gf.GetAlphaTo((gf.GetIndexOf(codeword[j]) + i * j) % n);  
 
                 syndromes[i - 1] = syndrome;
             }
@@ -154,7 +142,7 @@ namespace Projekat_tema7.Correction
 
             for (int i = 0; i < p1.Length; i++)
                 for (int j = 0; j < p2.Length; j++)
-                    res[i + j] = _gf.Add(res[i + j], _gf.Multiply(p1[i], p2[j]));
+                    res[i + j] = gf.Add(res[i + j], gf.Multiply(p1[i], p2[j]));
 
             return res;
         }
@@ -172,15 +160,15 @@ namespace Projekat_tema7.Correction
                 int d = syndromes[n_idx];
 
                 for (int i = 1; i <= L; i++)
-                    d = _gf.Add(d, _gf.Multiply(C[i], syndromes[n_idx - i]));
+                    d = gf.Add(d, gf.Multiply(C[i], syndromes[n_idx - i]));
 
                 if (d != 0)
                 {
                     int[] T = (int[])C.Clone();
-                    int factor = _gf.Multiply(d, _gf.Inverse(b));
+                    int factor = gf.Multiply(d, gf.Inverse(b));
 
                     for (int i = 0; i + m < C.Length; i++)
-                        C[i + m] = _gf.Add(C[i + m], _gf.Multiply(factor, B[i]));
+                        C[i + m] = gf.Add(C[i + m], gf.Multiply(factor, B[i]));
 
                     if (2 * L <= n_idx)
                     {
@@ -201,17 +189,17 @@ namespace Projekat_tema7.Correction
         {
             List<int> locations = new();
 
-            for (int i = 0; i < _n; i++)
+            for (int i = 0; i < n; i++)
             {
-                int x = _gf.GetAlphaTo(i);
+                int x = gf.GetAlphaTo((n - i) % n); 
 
-                int sum = sigma[sigma.Length - 1];
+                int sum = sigma[0];
 
-                for (int j = sigma.Length - 2; j >= 0; j--)
-                    sum = _gf.Add(_gf.Multiply(sum, x), sigma[j]);
+                for (int j = 1; j < sigma.Length; j++)
+                    sum = gf.Add(sum, gf.Multiply(sigma[j], Power(x, j)));
 
                 if (sum == 0)
-                    locations.Add((_n - i) % _n);
+                    locations.Add(i);
             }
 
             return locations.Distinct().ToArray();
@@ -224,24 +212,28 @@ namespace Projekat_tema7.Correction
 
             int[] sigma = BerlekampMassey(syndromes);
             int[] omega = MultiplyPolynomials(syndromes, sigma);
-            omega = omega.Take(2 * _t).ToArray();
+             
+            if (omega.Length > 2 * t)
+                omega = omega.Take(2 * t).ToArray();
+            else if (omega.Length < 2 * t)
+                omega = omega.Concat(new int[2 * t - omega.Length]).ToArray();
 
             foreach (int pos in errorLocations)
             {
-                int X = _gf.GetAlphaTo(pos);
-                int invX = _gf.Inverse(X);
+                int X = gf.GetAlphaTo(pos);
+                int invX = gf.Inverse(X);
 
                 int num = 0;
                 for (int i = 0; i < omega.Length; i++)
-                    num = _gf.Add(num, _gf.Multiply(omega[i], Power(invX, i)));
+                    num = gf.Add(num, gf.Multiply(omega[i], Power(invX, i)));
 
                 int den = 0;
                 for (int i = 1; i < sigma.Length; i += 2)
-                    den = _gf.Add(den, _gf.Multiply(sigma[i], Power(invX, i - 1)));
+                    den = gf.Add(den, gf.Multiply(sigma[i], Power(invX, i - 1)));
 
                 if (den == 0) continue;
 
-                int errorValue = _gf.Divide(num, den);
+                int errorValue = gf.Divide(num, den);
                 result[pos] ^= (byte)errorValue;
             }
 
@@ -252,7 +244,8 @@ namespace Projekat_tema7.Correction
         {
             int r = 1;
             for (int i = 0; i < p; i++)
-                r = _gf.Multiply(r, a);
+                r = gf.Multiply(r, a);
+            
             return r;
         }
     }
